@@ -23,6 +23,7 @@ interface Form {
   tipo?: string;
   quantidade?: number;
   data?: string;
+  observacoes?: boolean;
   [key: string]: unknown;
 }
 
@@ -32,7 +33,7 @@ export default function Home() {
   const [forms, setForms] = useState<Form[]>([]);
   const { user, loading: authLoading, logout, userRole, empresa } = useAuth();
   const router = useRouter();
-  const version = "v1.1";
+  const version = "v2.0.1";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -220,6 +221,9 @@ export default function Home() {
                     Origem
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    Obs.
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     Preço Venda
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -274,6 +278,13 @@ export default function Home() {
                           }`}>
                           {form.origem || 'Nacional'}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap font-bold flex justify-center items-center">
+                        {form.observacoes ? (
+                          <div className="bg-yellow-300 h-5 aspect-square rounded-full flex justify-center items-center">
+                            <span className="text-xs text-red-600">!</span>
+                          </div>
+                        ) : ''}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap font-bold">
                         R$ {form.statusFirebase !== "aguardando"

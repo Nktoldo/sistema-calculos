@@ -431,7 +431,6 @@ function EditorPageContent() {
 
     useEffect(() => {
         async function loadFormData() {
-            // garante que todos os valores necessários estão disponíveis
             if (idFirebase && !dataLoaded && userRole && empresa) {
                 setLoading(true);
                 try {
@@ -1007,17 +1006,23 @@ function EditorPageContent() {
                 )}
                 {!loading && (
                     <div className="bg-white rounded-lg border border-gray-200 p-8">
+                        {observacoes && statusFirebase != null && (
+                            <div className="w-full h-auto bg-white border-5 border-yellow-200 rounded-lg p-4 mx-auto mb-4 flex items-center gap-2">
+                                <h1 className="text-lg font-semibold text-gray-900">Observações:</h1>
+                                <p className="text-md text-gray-700">{observacoes}</p>
+                            </div>
+                        )}
                         <form className="space-y-8">
                             {/* Informações Básicas */}
                             <section>
-                                {emailResponsavel != null && (
-                                    <p className="mb-2">Responsável: {emailResponsavel}</p>
-                                )}
-                                {responsavelOriginal && nomeResponsavelOriginal && (
-                                    <p className="mb-2 text-sm text-gray-600 italic">
-                                        Responsável Original: {nomeResponsavelOriginal}
-                                    </p>
-                                )}
+                        {emailResponsavel != null && (
+                            <p className="mb-2">Responsável: {emailResponsavel}</p>
+                        )}
+                        {responsavelOriginal && nomeResponsavelOriginal && (
+                            <p className="mb-2 text-sm text-gray-600 italic">
+                                Responsável Original: {nomeResponsavelOriginal}
+                            </p>
+                        )}
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações Básicas</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
