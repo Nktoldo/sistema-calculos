@@ -344,7 +344,7 @@ function EditorPageContent() {
     useEffect(() => {
         if (user && empresa) {
             console.log("Logado com empresa:", empresa);
-            
+
         }
     }, [user, empresa]);
 
@@ -462,7 +462,7 @@ function EditorPageContent() {
                         if (typedFormData.responsavelOriginal) {
                             setResponsavelOriginal(typedFormData.responsavelOriginal);
                         }
-                        
+
                         // monta o state com os dados carregados
                         const novoCalculoState: CalculoState = {
                             custoProduto: typedFormData.custoProduto || 0,
@@ -490,14 +490,14 @@ function EditorPageContent() {
                             emailResponsavel: emailResponsavel,
                             criadoPor: typedFormData.criadoPor || null
                         };
-                        
+
                         // calcula sugestões se tiver valor do produto e sugestões zeradas
                         if (novoCalculoState.custoProduto > 0 && novoCalculoState.lucro20 === 0 && novoCalculoState.lucro30 === 0) {
                             const sugestoes = calcularSugestoes(novoCalculoState);
                             novoCalculoState.lucro20 = sugestoes.lucro20;
                             novoCalculoState.lucro30 = sugestoes.lucro30;
                         }
-                        
+
                         setCalculoState(novoCalculoState);
                         setDataLoaded(true);
                     } else {
@@ -642,7 +642,7 @@ function EditorPageContent() {
                 break;
         }
     };
-     const handleCalculoChange = (campo: CampoEditavel, valor: string) => {
+    const handleCalculoChange = (campo: CampoEditavel, valor: string) => {
         const valorNumerico = parseFloat(valor) || 0;
         campoEditandoRef.current = campo;
 
@@ -1006,23 +1006,56 @@ function EditorPageContent() {
                 )}
                 {!loading && (
                     <div className="bg-white rounded-lg border border-gray-200 p-8">
-                        {observacoes && statusFirebase != null && (
+                        
+                        {/* Mensagem de observacao, caso exista e o status nao seja "retornado" ou "finalizado": */}
+                        {(observacoes && (statusFirebase != "retornado" && statusFirebase != "finalizado")) && (
                             <div className="w-full h-auto bg-white border-5 border-yellow-200 rounded-lg p-4 mx-auto mb-4 flex items-center gap-2">
                                 <h1 className="text-lg font-semibold text-gray-900">Observações:</h1>
                                 <p className="text-md text-gray-700">{observacoes}</p>
                             </div>
                         )}
+
+                        {/* Dashboard de resumo do negocio, caso o status seja "retornado" ou "finalizado": */}
+                        {(statusFirebase === "retornado" || statusFirebase === "finalizado") && (
+                            <div className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 mb-6">
+                                <h2 className="text-lg font-bold text-slate-800 mb-5 pb-3 border-b-2 border-slate-200">Resumo do negócio</h2>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+
+                                    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm col-span-2">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Produto</p>
+                                        <p className="text-slate-900 font-semibold text-base"><span>{produto || '—'}</span> <span>({modelo || ""})</span></p>
+                                        <p className="text-slate-600 text-sm mt-1">{[marca, id ? `Cód. ${id}` : null].filter(Boolean).join(' · ') || '—'}</p>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border-3 border-green-200 p-4 shadow-sm">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Preço de venda</p>
+                                        <p className="text-slate-900 font-bold text-xl text-emerald-700">
+                                            {calculoState.precoVenda > 0
+                                                ? calculoState.precoVenda.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                                : '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                                {observacoes && (
+                                    <div className="bg-white rounded-xl border-3 border-yellow-200 p-4 shadow-sm">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações</p>
+                                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{observacoes?.trim() || '—'}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <form className="space-y-8">
                             {/* Informações Básicas */}
                             <section>
-                        {emailResponsavel != null && (
-                            <p className="mb-2">Responsável: {emailResponsavel}</p>
-                        )}
-                        {responsavelOriginal && nomeResponsavelOriginal && (
-                            <p className="mb-2 text-sm text-gray-600 italic">
-                                Responsável Original: {nomeResponsavelOriginal}
-                            </p>
-                        )}
+                                {emailResponsavel != null && (
+                                    <p className="mb-2">Responsável: {emailResponsavel}</p>
+                                )}
+                                {responsavelOriginal && nomeResponsavelOriginal && (
+                                    <p className="mb-2 text-sm text-gray-600 italic">
+                                        Responsável Original: {nomeResponsavelOriginal}
+                                    </p>
+                                )}
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações Básicas</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>

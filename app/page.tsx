@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +34,7 @@ export default function Home() {
   const [forms, setForms] = useState<Form[]>([]);
   const { user, loading: authLoading, logout, userRole, empresa } = useAuth();
   const router = useRouter();
-  const version = "v2.0.1";
+  const version = "v2.0.2";
 
   useEffect(() => {
     if (!authLoading && !user) {

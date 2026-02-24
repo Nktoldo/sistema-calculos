@@ -8,3 +8,6 @@ Inicio do desenvolvimento do Dashboard na pagina de edicao para facilitar visual
 >Insercao card de alerta no inicio da pagina caso tenha uma observacao no final do formulario
 
 >Insercao de indicador de observacao ao lado do campo de preco de venda, na pagina principal
+
+### v2.0.2
+>Desenvolvimento do dashboard para melhor visualizacao de informacoes para negocios "retornados" ao responsavel
