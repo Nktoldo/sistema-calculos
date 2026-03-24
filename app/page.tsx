@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { getAllForms } from "@/lib/firebaseFunctions";
 import { useAuth } from "@/lib/authContext";
 
-type Types = "todos" | "aguardando" | "retornado" | "fechado";
+type Types = "todos" | "aguardando" | "retornado" | "fechado" | "lista";
 
 interface Form {
   idFirebase?: string;
@@ -34,7 +34,7 @@ export default function Home() {
   const [forms, setForms] = useState<Form[]>([]);
   const { user, loading: authLoading, logout, userRole, empresa } = useAuth();
   const router = useRouter();
-  const version = "v2.0.2";
+  const version = "v2.2";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -73,7 +73,8 @@ export default function Home() {
       selected === "todos" ||
       (selected === "aguardando" && form.statusFirebase === "aguardando") ||
       (selected === "retornado" && form.statusFirebase === "retornado") ||
-      (selected === "fechado" && (form.statusFirebase === "finalizado"));
+      (selected === "fechado" && (form.statusFirebase === "finalizado")) ||
+      (selected === "lista" && (form.statusFirebase === "lista"));
 
     // filtro por busca (múltiplos campos)
     const searchLower = searchTerm.toLowerCase();
@@ -100,8 +101,8 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{user?.email}</span>
               <span className={`px-2 py-1 text-xs font-semibold rounded-full ${userRole === 'admin'
-                  ? 'bg-purple-100 text-purple-800'
-                  : 'bg-blue-100 text-blue-800'
+                ? 'bg-purple-100 text-purple-800'
+                : 'bg-blue-100 text-blue-800'
                 }`}>
                 {userRole === 'admin' ? 'Admin' : 'Colaborador'}
               </span>
@@ -112,14 +113,6 @@ export default function Home() {
             >
               Sair
             </button>
-            {/* {userRole === 'admin' && (
-                <Link
-                  href="/usuarios"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium"
-                >
-                  Usuários
-                </Link>
-              )} */}
             <Link
               href="/editor"
               className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors text-sm font-medium"
@@ -139,8 +132,8 @@ export default function Home() {
             <div className="flex flex-wrap gap-2">
               <button
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${selected === "todos"
-                    ? "bg-slate-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 onClick={() => setSelected("todos")}
               >
@@ -148,8 +141,8 @@ export default function Home() {
               </button>
               <button
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${selected === "aguardando"
-                    ? "bg-slate-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 onClick={() => setSelected("aguardando")}
               >
@@ -157,8 +150,8 @@ export default function Home() {
               </button>
               <button
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${selected === "retornado"
-                    ? "bg-slate-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 onClick={() => setSelected("retornado")}
               >
@@ -166,15 +159,23 @@ export default function Home() {
               </button>
               <button
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${selected === "fechado"
-                    ? "bg-slate-900 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 onClick={() => setSelected("fechado")}
               >
                 Enviado/Outros
               </button>
+                <button
+                  className={`px-4 py-2 border-3 border-blue-500 rounded-md text-sm font-medium transition-all ${selected === "lista"
+                  ? "bg-slate-900 text-blue-400"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  onClick={() => setSelected("lista")}
+                >
+                  Preço Lista
+                </button>
             </div>
-
             {/* Search Bar */}
             <div className="w-full lg:w-auto">
               <input
@@ -246,7 +247,7 @@ export default function Home() {
                   filteredForms.map((form) => (
                     <tr key={form.idFirebase} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
-                      {form.data ? (() => {
+                        {form.data ? (() => {
                           const [year, month, day] = form.data.split('-').map(Number);
                           return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
                         })() : '-'}
@@ -274,8 +275,8 @@ export default function Home() {
                       </td>
                       <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${form.origem === 'Importado'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-green-100 text-green-800'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
                           }`}>
                           {form.origem || 'Nacional'}
                         </span>
@@ -295,10 +296,10 @@ export default function Home() {
                       </td>
                       <td className="px-4 py-3 text-sm whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${form.statusFirebase === 'enviado'
-                            ? 'bg-green-100 text-green-800'
-                            : form.statusFirebase === 'lucro calculado'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-green-100 text-green-800'
+                          : form.statusFirebase === 'lucro calculado'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-yellow-100 text-yellow-800'
                           }`}>
                           {form.statusFirebase || 'aguardando'}
                         </span>

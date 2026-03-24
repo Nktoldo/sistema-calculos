@@ -37,3 +37,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# controle
+controle-versoes.md
+
+#novas versoes
+/app/estoque
+/app/home

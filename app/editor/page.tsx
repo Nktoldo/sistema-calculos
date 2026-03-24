@@ -18,6 +18,9 @@ interface CalculoState {
     responsavel: string | null;
     emailResponsavel: string | null;
     criadoPor: string | null;
+    observacoesSecundarias: string | null;
+    validade: string | null;
+    observacoes: string | null;
 
     // percentuais fixos
     boleto: number;
@@ -76,6 +79,8 @@ interface FormDataType {
     lucro30?: number;
     idFirebase?: string;
     observacoes?: string;
+    observacoesSecundarias?: string;
+    validade?: string;
 }
 
 type CampoEditavel = 'lucroDesejado' | 'precoVenda' | 'lucroLiquido' | 'lucroAbsoluto' | 'markup' | 'difalPerc' | 'comissaoPerc' | 'impostosPerc' | null;
@@ -385,6 +390,9 @@ function EditorPageContent() {
     const [lucroLiquidoInput, setLucroLiquidoInput] = useState<string>('0');
     const [lucroAbsolutoInput, setLucroAbsolutoInput] = useState<string>('0');
     const [markupInput, setMarkupInput] = useState<string>('0');
+    const [observacoesSecundarias, setobservacoesSecundarias] = useState<string>('');
+    const [validadeInput, setValidadeInput] = useState<string>('');
+    const [observacoesInput, setObservacoesInput] = useState<string>('');
     const [calculoState, setCalculoState] = useState<CalculoState>({
         custoProduto: 0,
         frete: 0,
@@ -409,7 +417,10 @@ function EditorPageContent() {
         statusFirebase: statusFirebase,
         responsavel: responsavel,
         emailResponsavel: emailResponsavel,
-        criadoPor: user?.uid || null
+        criadoPor: user?.uid || null,
+        validade: validadeInput,
+        observacoes: observacoes,
+        observacoesSecundarias: observacoesSecundarias
     });
 
     async function changeFirebaseStatus(status: string | null, option: number | null) {
@@ -421,6 +432,8 @@ function EditorPageContent() {
             nextStatus = "retornado";
         } else if (option === 3) { // 3 = fechado/encerrado
             nextStatus = "finalizado";
+        } else if (option == 4) {
+            nextStatus = "lista";
         }
 
         setStatusFirebase(nextStatus);
@@ -431,90 +444,92 @@ function EditorPageContent() {
 
     useEffect(() => {
         async function loadFormData() {
-            if (idFirebase && !dataLoaded && userRole && empresa) {
-                setLoading(true);
-                try {
-                    const formData = await getFormById(idFirebase, userRole, empresa);
+            if (!idFirebase || dataLoaded || !userRole || !empresa || !user) return;
+            setLoading(true);
+            try {
+                const formData = await getFormById(idFirebase, userRole, empresa, user.uid);
 
-                    const typedFormData = formData as FormDataType;
+                const typedFormData = formData as FormDataType;
 
-                    if (formData) {
-                        setData(typedFormData.data || getDataHoje());
-                        setCidade(typedFormData.cidade || '');
-                        setEstado(typedFormData.estado || '');
-                        setCliente(typedFormData.cliente || '');
-                        setTipoFrete(typedFormData.tipoFrete || 'CIF');
-                        setMarca(typedFormData.marca || '');
-                        setProduto(typedFormData.produto || '');
-                        setTipo(typedFormData.tipo || '');
-                        setQuantidade(typedFormData.quantidade ? String(typedFormData.quantidade) : '');
-                        setModelo(typedFormData.modelo || '');
-                        setStatus(typedFormData.status || '');
-                        setId(typedFormData.id ?? '');
-                        setStatusFirebase(typedFormData.statusFirebase ?? 'aguardando');
-                        setResponsavel(typedFormData.responsavel ?? user?.email ?? null);
-                        setObservacoes(typedFormData.observacoes || '');
-                        // se for admin e houver responsável diferente do admin, define como selecionado
-                        if (userRole === "admin" && typedFormData.responsavel && typedFormData.responsavel !== user?.uid) {
-                            setResponsavelSelecionado(typedFormData.responsavel);
-                        }
-                        // carrega responsavelOriginal se existir
-                        if (typedFormData.responsavelOriginal) {
-                            setResponsavelOriginal(typedFormData.responsavelOriginal);
-                        }
-
-                        // monta o state com os dados carregados
-                        const novoCalculoState: CalculoState = {
-                            custoProduto: typedFormData.custoProduto || 0,
-                            frete: typedFormData.frete || 0,
-                            origem: typedFormData.origem || "Nacional/RS",
-                            boleto: typedFormData.boleto || 4.5,
-                            comissaoPerc: typedFormData.comissaoPerc || 4.5,
-                            impostosPerc: typedFormData.impostosPerc || 4,
-                            difalPerc: typedFormData.difalPerc || 13,
-                            lucroDesejado: typedFormData.lucroDesejado || 0,
-                            precoVenda: typedFormData.precoVenda || 0,
-                            lucroLiquido: typedFormData.lucroLiquido || 0,
-                            lucroAbsoluto: typedFormData.lucroAbsoluto || 0,
-                            markup: typedFormData.markup || 0,
-                            difalReais: typedFormData.difalReais || 0,
-                            comissaoReais: typedFormData.comissaoReais || 0,
-                            impostosReais: typedFormData.impostosReais || 0,
-                            lucro20: typedFormData.lucro20 || 0,
-                            lucro30: typedFormData.lucro30 || 0,
-                            id: typedFormData.id || null,
-                            idFirebase: typedFormData.idFirebase || null,
-                            status: typedFormData.status || null,
-                            statusFirebase: typedFormData.statusFirebase || 'aguardando',
-                            responsavel: typedFormData.responsavel || null,
-                            emailResponsavel: emailResponsavel,
-                            criadoPor: typedFormData.criadoPor || null
-                        };
-
-                        // calcula sugestões se tiver valor do produto e sugestões zeradas
-                        if (novoCalculoState.custoProduto > 0 && novoCalculoState.lucro20 === 0 && novoCalculoState.lucro30 === 0) {
-                            const sugestoes = calcularSugestoes(novoCalculoState);
-                            novoCalculoState.lucro20 = sugestoes.lucro20;
-                            novoCalculoState.lucro30 = sugestoes.lucro30;
-                        }
-
-                        setCalculoState(novoCalculoState);
-                        setDataLoaded(true);
-                    } else {
-                        // se não retornou dados, não marca como carregado para tentar novamente
-                        console.warn('FormData retornou null ou undefined');
+                if (formData) {
+                    setData(typedFormData.data || getDataHoje());
+                    setCidade(typedFormData.cidade || '');
+                    setEstado(typedFormData.estado || '');
+                    setCliente(typedFormData.cliente || '');
+                    setTipoFrete(typedFormData.tipoFrete || 'CIF');
+                    setMarca(typedFormData.marca || '');
+                    setProduto(typedFormData.produto || '');
+                    setTipo(typedFormData.tipo || '');
+                    setQuantidade(typedFormData.quantidade ? String(typedFormData.quantidade) : '');
+                    setModelo(typedFormData.modelo || '');
+                    setStatus(typedFormData.status || '');
+                    setId(typedFormData.id ?? '');
+                    setStatusFirebase(typedFormData.statusFirebase ?? 'aguardando');
+                    setResponsavel(typedFormData.responsavel ?? user?.email ?? null);
+                    setObservacoes(typedFormData.observacoes || '');
+                    // se for admin e houver responsável diferente do admin, define como selecionado
+                    if (userRole === "admin" && typedFormData.responsavel && typedFormData.responsavel !== user?.uid) {
+                        setResponsavelSelecionado(typedFormData.responsavel);
                     }
-                } catch (error) {
-                    console.error('Erro ao carregar dados:', error);
-                    alert('Erro ao carregar os dados do formulário');
-                    // não marca como carregado em caso de erro para permitir nova tentativa
-                } finally {
-                    setLoading(false);
+                    // carrega responsavelOriginal se existir
+                    if (typedFormData.responsavelOriginal) {
+                        setResponsavelOriginal(typedFormData.responsavelOriginal);
+                    }
+
+                    // monta o state com os dados carregados
+                    const novoCalculoState: CalculoState = {
+                        custoProduto: typedFormData.custoProduto || 0,
+                        frete: typedFormData.frete || 0,
+                        origem: typedFormData.origem || "Nacional/RS",
+                        boleto: typedFormData.boleto || 4.5,
+                        comissaoPerc: typedFormData.comissaoPerc || 4.5,
+                        impostosPerc: typedFormData.impostosPerc || 4,
+                        difalPerc: typedFormData.difalPerc || 13,
+                        lucroDesejado: typedFormData.lucroDesejado || 0,
+                        precoVenda: typedFormData.precoVenda || 0,
+                        lucroLiquido: typedFormData.lucroLiquido || 0,
+                        lucroAbsoluto: typedFormData.lucroAbsoluto || 0,
+                        markup: typedFormData.markup || 0,
+                        difalReais: typedFormData.difalReais || 0,
+                        comissaoReais: typedFormData.comissaoReais || 0,
+                        impostosReais: typedFormData.impostosReais || 0,
+                        lucro20: typedFormData.lucro20 || 0,
+                        lucro30: typedFormData.lucro30 || 0,
+                        id: typedFormData.id || null,
+                        idFirebase: typedFormData.idFirebase || null,
+                        status: typedFormData.status || null,
+                        statusFirebase: typedFormData.statusFirebase || 'aguardando',
+                        responsavel: typedFormData.responsavel || null,
+                        emailResponsavel: emailResponsavel,
+                        criadoPor: typedFormData.criadoPor || null,
+                        observacoesSecundarias: typedFormData.observacoesSecundarias || null,
+                        validade: typedFormData.validade || null,
+                        observacoes: typedFormData.observacoes || null
+                    };
+
+                    // calcula sugestões se tiver valor do produto e sugestões zeradas
+                    if (novoCalculoState.custoProduto > 0 && novoCalculoState.lucro20 === 0 && novoCalculoState.lucro30 === 0) {
+                        const sugestoes = calcularSugestoes(novoCalculoState);
+                        novoCalculoState.lucro20 = sugestoes.lucro20;
+                        novoCalculoState.lucro30 = sugestoes.lucro30;
+                    }
+
+                    setCalculoState(novoCalculoState);
+                    setDataLoaded(true);
+                } else {
+                    // se não retornou dados, não marca como carregado para tentar novamente
+                    console.warn('FormData retornou null ou undefined');
                 }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar os dados do formulário');
+                // não marca como carregado em caso de erro para permitir nova tentativa
+            } finally {
+                setLoading(false);
             }
         }
         loadFormData();
-    }, [idFirebase, userRole, empresa, dataLoaded, emailResponsavel, user?.email, user?.uid]);
+    }, [idFirebase, userRole, empresa, dataLoaded, user, user?.email, user?.uid]);
 
     // atualiza valores padrão quando empresa muda
     useEffect(() => {
@@ -578,6 +593,9 @@ function EditorPageContent() {
         setLucroLiquidoInput(calculoState.lucroLiquido.toFixed(2));
         setLucroAbsolutoInput(calculoState.lucroAbsoluto.toFixed(2));
         setMarkupInput(calculoState.markup.toFixed(2));
+        setobservacoesSecundarias(calculoState.observacoesSecundarias || '');
+        setValidadeInput(calculoState.validade || '');
+        setObservacoesInput(calculoState.observacoes || '');
     }, [
         calculoState.difalPerc,
         calculoState.comissaoPerc,
@@ -589,7 +607,10 @@ function EditorPageContent() {
         calculoState.lucroDesejado,
         calculoState.lucroLiquido,
         calculoState.lucroAbsoluto,
-        calculoState.markup
+        calculoState.markup,
+        calculoState.observacoesSecundarias,
+        calculoState.validade,
+        calculoState.observacoes
     ]);
 
     if (authLoading) {
@@ -639,6 +660,14 @@ function EditorPageContent() {
                 break;
             case 'observacoes':
                 setObservacoes(value);
+                break;
+            case 'observacoesSecundarias':
+                setobservacoesSecundarias(value);
+                setCalculoState(prev => ({ ...prev, observacoesSecundarias: value || null }));
+                break;
+            case 'validade':
+                setValidadeInput(value);
+                setCalculoState(prev => ({ ...prev, validade: value || null }));
                 break;
         }
     };
@@ -859,6 +888,8 @@ function EditorPageContent() {
             criadoPor: criadoPorFinal,
             emailResponsavel: emailResponsavel,
             observacoes: observacoes,
+            observacoesSecundarias: observacoesSecundarias,
+            validade: validadeInput,
 
             // timestamp
             criadoEm: new Date().toISOString(),
@@ -934,63 +965,86 @@ function EditorPageContent() {
                         </h1>
                     </div>
                     <div className="flex gap-3">
-                        <button
-                            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={handleCancelarClick}
-                            disabled={loading}
-                        >
-                            Cancelar
-                        </button>
-                        {idFirebase && isEditMode && userRole === 'admin' && (
-                            <button
-                                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                onClick={handleExcluirClick}
-                                disabled={loading}
-                            >
-                                {loading ? 'Excluindo...' : 'Excluir'}
-                            </button>
-                        )}
-                        <button
-                            className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={() => {
-                                if (userRole != 'admin') { //se for admin e tiver dados de lucro deve salvar o status como "return" e nao aguardando para o funcionario 
-                                    handleSalvarClick(1)
-                                } else if (userRole == 'admin' && calculoState.lucroLiquido > 1) {
-                                    handleSalvarClick(2)
-                                } else {
-                                    handleSalvarClick(null)
-                                }
-                            }}
-                            disabled={loading}
-                        >
-                            {loading ? 'Salvando...' : (idFirebase && isEditMode ? 'Atualizar' : 'Salvar')}
-                        </button>
-                        {calculoState.statusFirebase == 'aguardando' && userRole == 'admin' && (
-                            <button
-                                className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                onClick={() => handleSalvarClick(2)}
-                                disabled={loading}
-                            >
-                                {loading ? 'Enviando...' : 'Enviar para responsavel'}
-                            </button>
-                        )}
-                        {(calculoState.statusFirebase == 'retornado' || userRole == 'admin') && (
-                            <button
-                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                onClick={() => {
-                                    if (userRole == 'admin' && calculoState.lucroLiquido > 1 && responsavelSelecionado != user?.uid) {
-                                        const confirmacao = confirm('⚠️ Este calculo possui lucro e responsavel!\n\n Concluindo o calculo, ele aparecera como "concluido" e nao como "retornado" para o responsavel.\n\n Deseja continuar?')
-                                        if (confirmacao) {
-                                            handleSalvarClick(3)
+                        {(userRole === 'admin' || statusFirebase != 'lista') && (
+                            <>
+                                <button
+                                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={handleCancelarClick}
+                                    disabled={loading}
+                                >
+                                    Cancelar
+                                </button>
+                                {((idFirebase && isEditMode) && userRole === 'admin') && (
+                                    <button
+                                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={handleExcluirClick}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Excluindo...' : 'Excluir'}
+                                    </button>
+                                )}
+                                <button
+                                    className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => {
+                                        if (userRole != 'admin') { //se for admin e tiver dados de lucro deve salvar o status como "return" e nao aguardando para o funcionario 
+                                            handleSalvarClick(1)
+                                        } else if (userRole == 'admin' && calculoState.lucroLiquido > 1) {
+                                            handleSalvarClick(2)
+                                        } else {
+                                            handleSalvarClick(null)
                                         }
-                                    } else {
-                                        handleSalvarClick(3)
-                                    }
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'Fechando...' : 'Concluir cálculo'}
-                            </button>
+                                    }}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Salvando...' : (idFirebase && isEditMode ? 'Atualizar' : 'Salvar')}
+                                </button>
+                                {calculoState.statusFirebase == 'aguardando' && userRole == 'admin' && (
+                                    <button
+                                        className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={() => handleSalvarClick(2)}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Enviando...' : 'Enviar para responsavel'}
+                                    </button>
+                                )}
+                                {(calculoState.statusFirebase == 'retornado' || userRole == 'admin') && (
+                                    <button
+                                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={() => {
+                                            if (userRole == 'admin' && calculoState.lucroLiquido > 1 && responsavelSelecionado != user?.uid) {
+                                                const confirmacao = confirm('⚠️ Este calculo possui lucro e responsavel!\n\n Concluindo o calculo, ele aparecera como "concluido" e nao como "retornado" para o responsavel.\n\n Deseja continuar?')
+                                                if (confirmacao) {
+                                                    handleSalvarClick(3)
+                                                }
+                                            } else {
+                                                handleSalvarClick(3)
+                                            }
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Fechando...' : 'Concluir cálculo'}
+                                    </button>
+                                )}
+                                {userRole == 'admin' && (
+                                    <button
+                                        // className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-3 border-blue-500"
+                                        onClick={() => {
+                                            if (calculoState.statusFirebase == 'retornado' || calculoState.statusFirebase == 'finalizado' || responsavelSelecionado != user?.uid) {
+                                                const confirmacao = confirm('⚠️ Este calculo possui andamento e/ou um responsavel, adicionar a lista de preco deixara o calculo visivel para todos os usuarios. Deseja prosseguir?')
+                                                if (confirmacao) {
+                                                    handleSalvarClick(4)
+                                                }
+                                            } else {
+                                                handleSalvarClick(4)
+                                            }
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        {loading ? 'Adicionando a lista de preço...' : 'Adicionar a Lista de Preço'}
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
@@ -1006,19 +1060,25 @@ function EditorPageContent() {
                 )}
                 {!loading && (
                     <div className="bg-white rounded-lg border border-gray-200 p-8">
-                        
-                        {/* Mensagem de observacao, caso exista e o status nao seja "retornado" ou "finalizado": */}
-                        {(observacoes && (statusFirebase != "retornado" && statusFirebase != "finalizado")) && (
-                            <div className="w-full h-auto bg-white border-5 border-yellow-200 rounded-lg p-4 mx-auto mb-4 flex items-center gap-2">
-                                <h1 className="text-lg font-semibold text-gray-900">Observações:</h1>
-                                <p className="text-md text-gray-700">{observacoes}</p>
+
+                        {/* mensagem de observacao, caso exista e o status nao seja "retornado" ou "finalizado": */}
+                        {((observacoes || observacoesSecundarias) && (statusFirebase != "retornado" && statusFirebase != "finalizado" && statusFirebase != "lista" && statusFirebase != null)) && (
+                            <div className="w-full h-auto bg-white border-5 border-yellow-200 rounded-lg p-4 mx-auto mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div className="col-span-1 px-8">
+                                    <h1 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações <b>Colaboradores:</b></h1>
+                                    <p className="text-md text-gray-700">{observacoes?.trim() || '—'}</p>
+                                </div>
+                                <div className="col-span-1 border-l-1 border-zinc-500 px-8">
+                                    <h1 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações <b>Administradores:</b></h1>
+                                    <p className="text-md text-gray-700">{observacoesSecundarias?.trim() || '—'}</p>
+                                </div>
                             </div>
                         )}
 
-                        {/* Dashboard de resumo do negocio, caso o status seja "retornado" ou "finalizado": */}
-                        {(statusFirebase === "retornado" || statusFirebase === "finalizado") && (
+                        {/* dashboard de resumo do negocio, caso o status seja "retornado" ou "finalizado": */}
+                        {(statusFirebase === "retornado" || statusFirebase === "finalizado" || statusFirebase === "lista") && (
                             <div className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 mb-6">
-                                <h2 className="text-lg font-bold text-slate-800 mb-5 pb-3 border-b-2 border-slate-200">Resumo do negócio</h2>
+                                <h2 className="text-lg font-bold text-slate-800 mb-5 pb-3 border-b-2 border-slate-200">Resumo do negócio <span className="text-sm text-red-500">{validadeInput && validadeInput < getDataHoje() ? ` - cálculo expirado (${validadeInput})` : ''}</span></h2>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
 
@@ -1037,10 +1097,16 @@ function EditorPageContent() {
                                         </p>
                                     </div>
                                 </div>
-                                {observacoes && (
-                                    <div className="bg-white rounded-xl border-3 border-yellow-200 p-4 shadow-sm">
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações</p>
-                                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{observacoes?.trim() || '—'}</p>
+                                {(observacoes || observacoesSecundarias) && (
+                                    <div className="bg-white rounded-xl border-3 border-yellow-200 p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        <div className="col-span-1">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações <b>Colaboradores:</b></p>
+                                            <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{observacoes?.trim() || '—'}</p>
+                                        </div>
+                                        <div className="col-span-1 border-l-1 border-zinc-500 px-8">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Observações <b>Administradores:</b></p>
+                                            <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{observacoesSecundarias?.trim() || '—'}</p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1110,6 +1176,7 @@ function EditorPageContent() {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
                                         />
                                     </div>
+                                    
                                 </div>
                                 {userRole === "admin" && (
                                     <div className="mt-4">
@@ -1640,7 +1707,7 @@ function EditorPageContent() {
                             <section>
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações de Controle</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
+                                    {/* <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Status
                                         </label>
@@ -1657,6 +1724,19 @@ function EditorPageContent() {
                                             <option value="lista">Lista</option>
                                             <option value="cancelado">Cancelado</option>
                                         </select>
+                                    </div> */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1 ">
+                                        Validade para preço de lista
+                                        </label>
+                                        <input
+                                            type="date"
+                                            name="validade"
+                                            value={validadeInput}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                                            min={getDataHoje()}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1671,13 +1751,27 @@ function EditorPageContent() {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
                                         />
                                     </div>
-                                    <div className="md:col-span-2">
+                                    <div className="md:col-span-1">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Observações
+                                            Observações Colaboradores {userRole === "funcionario" ? <span className="text-xs text-gray-500 font-bold">(Você)</span> : ""}
                                         </label>
                                         <textarea
                                             name="observacoes"
                                             value={observacoes}
+                                            onChange={handleInputChange}
+                                            placeholder="Digite observações sobre este cálculo..."
+                                            rows={3}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-y"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Observações Administradores {userRole === "admin" ? <span className="text-xs text-gray-500 font-bold">(Você)</span> : ""}
+                                        </label>
+                                        <textarea
+                                            name="observacoesSecundarias"
+                                            value={observacoesSecundarias}
+                                            disabled={userRole !== "admin"}
                                             onChange={handleInputChange}
                                             placeholder="Digite observações sobre este cálculo..."
                                             rows={3}
