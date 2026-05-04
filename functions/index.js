@@ -1,8 +1,82 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+
 
 // inicializa o Firebase Admin SDK
 admin.initializeApp();
+
+exports.onCotacaoCreated = onDocumentCreated(
+  'empresas/{empresaId}/cotacoes/{cotacaoId}',
+  async (event) => {
+    try {
+      const empresaId = event.params.empresaId;
+      const cotacaoId = event.params.cotacaoId;
+
+      await admin.messaging().send({
+        topic: `empresa_${empresaId}`,
+        notification: {
+          title: "Nova cotação",
+          body: "Uma nova cotação foi gerada.",
+        },
+        data: {
+          empresaId: String(empresaId),
+          cotacaoId: String(cotacaoId),
+        },
+        webpush: {
+          notification: {
+            icon: "https://servylab.com.br/images/pequenas/servylab-1688058798.png",
+            click_action: `https://seusite.com.br/cotacoes/${cotacaoId}` ,
+            requireInteraction: true,
+            actions: [
+              { action: 'open', title: 'Abrir Sistema' }
+            ]
+          }
+        },
+      });
+      return null;
+    } catch (error) {
+      console.error("Erro ao enviar notificacao de cotacao:", error);
+      return null;
+    }
+  }
+);
+
+exports.onUsuarioCreated = onDocumentCreated(
+  'empresas/{empresaId}/cotacoes/{usuarioId}',
+  async (event) => {
+    try {
+      const empresaId = event.params.empresaId;
+      const usuarioId = event.params.usuarioId;
+
+      await admin.messaging().send({
+        topic: `empresa_${empresaId}`,
+        notification: {
+          title: "Novo Usuário",
+          body: "Um novo usuário foi criado.",
+        },
+        data: {
+          empresaId: String(empresaId),
+          usuarioId: String(usuarioId),
+        },
+        webpush: {
+          notification: {
+            icon: "https://servylab.com.br/images/pequenas/servylab-1688058798.png",
+            click_action: `https://seusite.com.br/usuarios/${usuarioId}` ,
+            requireInteraction: true,
+            actions: [
+              { action: 'open', title: 'Abrir Sistema' }
+            ]
+          }
+        },
+      });
+      return null;
+    } catch (error) {
+      console.error("Erro ao enviar notificacao de cotacao:", error);
+      return null;
+    }
+  }
+);
 
 /**
  * cloud function para criar um novo funcionário/usuário; usa Admin SDK e não afeta a sessão do admin

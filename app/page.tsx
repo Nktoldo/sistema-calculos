@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAllForms } from "@/lib/firebaseFunctions";
 import { useAuth } from "@/lib/authContext";
+import { initPush } from "@/hooks/useNotifications";
 
 type Types = "todos" | "aguardando" | "retornado" | "fechado" | "lista";
 
@@ -48,6 +49,16 @@ export default function Home() {
       console.log("Versão do sistema:", version);
     }
   }, [user, userRole, empresa, version]);
+
+  useEffect(() => {
+    if (!user?.uid || !empresa) return;
+  
+    // Pede permissao, gera token e registra no backend uma vez por usuario/empresa
+    initPush(user.uid, empresa).catch((error) => {
+      console.error("Erro ao inicializar notificacoes push:", error);
+    });
+  }, [user?.uid, empresa]);
+
 
   const handleLogout = async () => {
     try {

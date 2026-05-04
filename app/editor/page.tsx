@@ -242,7 +242,6 @@ function calcularPorLucroAbsoluto(state: CalculoState): CalculoState {
     };
 }
 
-
 function calcularPorMarkup(state: CalculoState): CalculoState {
     const difalReais = calcularDifalReais(state.custoProduto, state.difalPerc, state.origem);
     const custoBase = calcularCustoBase(state.custoProduto, state.frete, state.boleto, difalReais);
@@ -284,7 +283,6 @@ function calcularSugestoes(state: CalculoState): { lucro20: number; lucro30: num
 
     return { lucro20, lucro30 };
 }
-
 
 function recalcularTodos(campoAlterado: CampoEditavel, state: CalculoState): CalculoState {
     let novoState: CalculoState;
