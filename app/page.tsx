@@ -330,6 +330,7 @@ export default function Home() {
                           >
                             Editar
                           </Link>
+                          <button className="bg-yellow-200">A</button>
                         </div>
                       </td>
                     </tr>
