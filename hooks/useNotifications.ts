@@ -1,28 +1,43 @@
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { app } from "@/lib/firestoreFunctions"; 
+import { app } from "@/lib/firestoreFunctions";
 
 export async function initPush(uid: string, empresaId: string) {
   if (typeof window === "undefined") return;
 
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-  const messaging = getMessaging(app);
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
 
-  const token = await getToken(messaging, {
-    vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-  });
+    const messaging = getMessaging(app);
 
-  if (!token) return;
+    const token = await getToken(messaging, {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+    });
 
-  await fetch("/api/notifications/register-token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, uid, empresaId }),
-  });
+    if (!token) return;
 
-  onMessage(messaging, (payload) => {
-    console.log("Mensagem recebida (foreground):", payload);
-    // toast
-  });
+    await fetch("/api/notifications/register-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, uid, empresaId }),
+    });
+
+    onMessage(messaging, (payload) => {
+      console.log("Mensagem recebida (foreground):", payload);
+      // toast
+    });
+
+  } catch (error: any) {
+
+    if (
+      error?.name === "AbortError" ||
+      error?.code === "messaging/failed-service-worker-registration" ||
+      error?.code === "messaging/token-subscribe-failed"
+    ) {
+      return;
+    }
+    console.warn("[Push] Notificações não disponíveis:", error?.message ?? error);
+  }
 }
